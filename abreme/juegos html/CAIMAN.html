@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego: Caza Caimanes de Huachupa</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Arial', sans-serif; background-color: #000; }
+        canvas { display: block; }
+
+        /* --- Menú Principal --- */
+        #main-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+        #main-menu h1 {
+            font-size: 4em;
+            text-shadow: 3px 3px 8px #ff0000;
+        }
+        #play-button {
+            font-size: 2em;
+            padding: 15px 40px;
+            border-radius: 10px;
+            border: 2px solid white;
+            background-color: #9d2a2a;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #play-button:hover {
+            background-color: #c53434;
+        }
+
+        /* --- UI en el Juego --- */
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            color: white;
+            pointer-events: none;
+            display: none; /* Oculto por defecto */
+        }
+        .info-box {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(0,0,0,0.6);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1em;
+        }
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(150, 0, 0, 0.8);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            font-size: 2.5em;
+            pointer-events: all;
+        }
+        #game-over button {
+            font-size: 0.5em;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background-color: red;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #stamina-container {
+            margin-top: 10px;
+        }
+        #stamina-bar-bg {
+            width: 150px;
+            height: 15px;
+            background-color: #333;
+            border: 1px solid #fff;
+            border-radius: 3px;
+        }
+        #stamina-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 2px;
+            transition: width 0.2s linear;
+        }
+        #ingame-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            pointer-events: all;
+            display: flex;
+            gap: 10px;
+        }
+        #ingame-controls button {
+            background-color: rgba(0,0,0,0.6);
+            color: white;
+            border: 1px solid white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Menú Principal -->
+    <div id="main-menu">
+        <h1>Caza Caimanes de Huachupa</h1>
+        <button id="play-button">Jugar</button>
+    </div>
+
+    <!-- Música de fondo -->
+    <!-- CORRECCIÓN: Se cambió la URL del audio por una compatible. -->
+    <!-- Música de fondo -->
+	<audio id="background-music" src="https://raw.githubusercontent.com/JC-004/audio-billie/main/Billie%20Eilish%20-%20LUNCH%20(Official%20Music%20Video).mp3" loop></audio>
+
+
+
+    <div id="ui-container">
+        <div class="info-box">
+            <p><b>Controles:</b></p>
+            <p>WASD: Moverse / Conducir</p>
+            <p>Ratón: Mirar</p>
+            <p>Clic: Disparar</p>
+            <p>Shift: Correr</p>
+            <p>Espacio: Saltar</p>
+            <p>F: Entrar/Salir del coche</p>
+            <p>C: Cambiar vista (1ra/3ra Persona)</p>
+            <p><b>Caimanes restantes: <span id="caiman-count">0</span></b></p>
+            <div id="stamina-container">
+                <p style="margin: 0 0 5px 0;">Estamina:</p>
+                <div id="stamina-bar-bg"><div id="stamina-bar"></div></div>
+            </div>
+        </div>
+        <div id="ingame-controls">
+            <button id="music-toggle">Pausar Música</button>
+            <button id="restart-btn">Reiniciar</button>
+        </div>
+        <div id="crosshair">+</div>
+        <div id="game-over">
+            <h1>¡HAS SIDO CAZADO!</h1>
+            <button onclick="location.reload()">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // ====================================================================
+        // ELEMENTOS DE LA UI Y LÓGICA DEL MENÚ
+        // ====================================================================
+        const mainMenu = document.getElementById('main-menu');
+        const playButton = document.getElementById('play-button');
+        const music = document.getElementById('background-music');
+        const uiContainer = document.getElementById('ui-container');
+        const musicToggleButton = document.getElementById('music-toggle');
+        const restartButton = document.getElementById('restart-btn');
+
+        playButton.addEventListener('click', () => {
+            mainMenu.style.display = 'none';
+            uiContainer.style.display = 'block';
+            music.play().catch(e => console.error("La reproducción de música falló:", e));
+            init(); // Iniciar el juego
+        });
+
+        musicToggleButton.addEventListener('click', () => {
+            if (music.paused) {
+                music.play();
+                musicToggleButton.textContent = 'Pausar Música';
+            } else {
+                music.pause();
+                musicToggleButton.textContent = 'Reanudar Música';
+            }
+        });
+
+        restartButton.addEventListener('click', () => {
+            location.reload();
+        });
+
+        // ====================================================================
+        // CONFIGURACIÓN BÁSICA DEL JUEGO
+        // ====================================================================
+        let scene, camera, renderer, player, cameraPivot;
+        let alligators = [], bullets = [], cars = [];
+        let keys = {};
+        const clock = new THREE.Clock();
+        const worldSize = 400;
+        const numAlligators = 15;
+        const numCars = 5;
+        let gameOver = false;
+
+        let isInCar = false;
+        let currentCar = null;
+        let isFirstPerson = false;
+
+        let playerVelocityY = 0;
+        const gravity = -25;
+        let isGrounded = true;
+        let stamina = 100;
+        const maxStamina = 100;
+
+        const caimanCountUI = document.getElementById('caiman-count');
+        const gameOverUI = document.getElementById('game-over');
+        const staminaBarUI = document.getElementById('stamina-bar');
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x112211);
+            scene.fog = new THREE.Fog(0x112211, 1, 250);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0x404040, 2);
+            scene.add(ambientLight);
+            const light = new THREE.DirectionalLight(0xffffff, 0.5);
+            light.position.set(0, 50, 0);
+            scene.add(light);
+
+            createVisiblePlayer();
+            setupThirdPersonCamera();
+            
+            createForest();
+            for (let i = 0; i < numAlligators; i++) createAlligator();
+            for (let i = 0; i < numCars; i++) createCar();
+
+            caimanCountUI.textContent = alligators.length;
+            
+            setupControls();
+            animate();
+        }
+        
+        // El resto del código del juego (funciones de creación, controles, bucle de animación, etc.)
+        // permanece igual que en la versión anterior.
+        
+        function createVisiblePlayer() {
+            const playerMat = new THREE.MeshLambertMaterial({color: 0x0099db});
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.5, 8), playerMat);
+            body.position.y = 0.75;
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), playerMat);
+            head.position.y = 1.8;
+            player = new THREE.Group();
+            player.add(body, head);
+            player.position.set(0, 0, 10);
+            scene.add(player);
+        }
+
+        function createCar() {
+            const carBody = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 4), new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff }));
+            carBody.position.y = 0.5;
+            const carCabin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.8, 2), new THREE.MeshLambertMaterial({ color: 0x333333 }));
+            carCabin.position.y = 1.4;
+            carCabin.position.z = -0.5;
+            const car = new THREE.Group();
+            car.add(carBody, carCabin);
+            car.position.set((Math.random() - 0.5) * worldSize, 0, (Math.random() - 0.5) * worldSize);
+            car.rotation.y = Math.random() * Math.PI * 2;
+            scene.add(car);
+            cars.push(car);
+        }
+
+        function setupThirdPersonCamera() {
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            cameraPivot = new THREE.Group();
+            cameraPivot.add(camera);
+            scene.add(cameraPivot);
+            camera.position.set(0, 3, 7);
+            camera.lookAt(cameraPivot.position);
+        }
+
+        function createForest() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(worldSize, worldSize), new THREE.MeshLambertMaterial({ color: 0x3a542f }));
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+            const treeGeo = new THREE.CylinderGeometry(0.5, 1, 15, 8);
+            const treeMat = new THREE.MeshLambertMaterial({ color: 0x5B3A29 });
+            for (let i = 0; i < 200; i++) {
+                const tree = new THREE.Mesh(treeGeo, treeMat);
+                tree.position.set((Math.random() - 0.5) * worldSize, 7.5, (Math.random() - 0.5) * worldSize);
+                scene.add(tree);
+            }
+        }
+
+        function createAlligator() {
+            const bodyMat = new THREE.MeshLambertMaterial({ color: 0x2e4928 });
+            const alligator = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 4), bodyMat);
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 1.5), bodyMat);
+            head.position.z = -2.5;
+            alligator.add(body, head);
+            alligator.position.set((Math.random() - 0.5) * (worldSize - 50), 0.25, (Math.random() - 0.5) * (worldSize - 50));
+            alligator.userData = { state: 'patrol', health: 3, speed: 3 + Math.random() * 2, patrolTarget: new THREE.Vector3().copy(alligator.position) };
+            scene.add(alligator);
+            alligators.push(alligator);
+        }
+
+        function setupControls() {
+            document.addEventListener('keydown', (event) => keys[event.key.toLowerCase()] = true);
+            document.addEventListener('keyup', (event) => {
+                const key = event.key.toLowerCase();
+                keys[key] = false;
+                if (key === 'c') toggleCameraView();
+                if (key === 'f') handleEnterExitCar();
+            });
+            document.body.addEventListener('click', () => { if (!gameOver) document.body.requestPointerLock(); });
+            document.addEventListener('mousemove', (event) => {
+                if (document.pointerLockElement === document.body) {
+                    if (isFirstPerson) {
+                        player.rotation.y -= event.movementX * 0.002;
+                        camera.rotation.x -= event.movementY * 0.002;
+                        camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+                    } else {
+                        cameraPivot.rotation.y -= event.movementX * 0.002;
+                        camera.rotation.x -= event.movementY * 0.002;
+                        camera.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 3, camera.rotation.x));
+                    }
+                }
+            });
+            document.addEventListener('mousedown', (event) => { if (event.button === 0 && document.pointerLockElement === document.body && !gameOver) shoot(); });
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        function toggleCameraView() {
+            isFirstPerson = !isFirstPerson;
+            if (isFirstPerson) {
+                cameraPivot.remove(camera);
+                player.add(camera);
+                camera.position.set(0, 1.6, 0);
+                camera.rotation.set(0,0,0);
+                if (!isInCar) player.visible = false;
+            } else {
+                player.remove(camera);
+                cameraPivot.add(camera);
+                camera.position.set(0, 3, 7);
+                if (!isInCar) player.visible = true;
+            }
+        }
+
+        function handleEnterExitCar() {
+            if (isInCar) {
+                isInCar = false;
+                player.position.copy(currentCar.position);
+                player.position.x += 3;
+                currentCar = null;
+                player.visible = !isFirstPerson;
+            } else {
+                let closestCar = null;
+                let minDistance = 5;
+                cars.forEach(car => {
+                    const distance = player.position.distanceTo(car.position);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestCar = car;
+                    }
+                });
+                if (closestCar) {
+                    isInCar = true;
+                    currentCar = closestCar;
+                    player.visible = false;
+                }
+            }
+        }
+
+        function animate() {
+            if (gameOver) return;
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            if (isInCar) {
+                handleCarMovement(delta);
+                checkCarCollisions();
+            } else {
+                handlePlayerMovement(delta);
+            }
+            
+            updateAlligators(delta);
+            updateBullets(delta);
+            
+            const cameraTarget = isInCar ? currentCar : player;
+            cameraPivot.position.copy(cameraTarget.position);
+
+            updateUI();
+            renderer.render(scene, camera);
+        }
+
+        function handlePlayerMovement(delta) {
+            const baseSpeed = 5.0;
+            const sprintMultiplier = 1.8;
+            let currentSpeed = baseSpeed;
+
+            if (keys['shift'] && stamina > 0) {
+                currentSpeed *= sprintMultiplier;
+                stamina -= 30 * delta;
+            } else if (stamina < maxStamina) {
+                stamina += 15 * delta;
+            }
+            stamina = Math.max(0, Math.min(maxStamina, stamina));
+
+            const moveDirection = new THREE.Vector3();
+            if (keys['w']) moveDirection.z = -1;
+            if (keys['s']) moveDirection.z = 1;
+            if (keys['a']) moveDirection.x = -1;
+            if (keys['d']) moveDirection.x = 1;
+
+            if (moveDirection.length() > 0) {
+                moveDirection.normalize().multiplyScalar(currentSpeed * delta);
+                const moveQuaternion = isFirstPerson ? player.quaternion : cameraPivot.quaternion;
+                moveDirection.applyQuaternion(moveQuaternion);
+                player.position.add(moveDirection);
+                if (!isFirstPerson) player.lookAt(player.position.clone().add(moveDirection));
+            }
+
+            playerVelocityY += gravity * delta;
+            player.position.y += playerVelocityY * delta;
+
+            if (player.position.y <= 0) {
+                player.position.y = 0;
+                playerVelocityY = 0;
+                isGrounded = true;
+            }
+
+            if (keys[' '] && isGrounded) {
+                playerVelocityY = 8.0;
+                isGrounded = false;
+            }
+        }
+
+        function handleCarMovement(delta) {
+            const speed = 20.0;
+            const turnSpeed = 1.5;
+            if (keys['w']) currentCar.translateZ(-speed * delta);
+            if (keys['s']) currentCar.translateZ(speed * delta);
+            if (keys['a']) currentCar.rotation.y += turnSpeed * delta;
+            if (keys['d']) currentCar.rotation.y -= turnSpeed * delta;
+        }
+
+        function checkCarCollisions() {
+            for (let i = alligators.length - 1; i >= 0; i--) {
+                const alligator = alligators[i];
+                if (currentCar.position.distanceTo(alligator.position) < 3) {
+                    killAlligator(i);
+                }
+            }
+        }
+
+        function updateAlligators(delta) {
+            alligators.forEach(alligator => {
+                const distanceToPlayer = alligator.position.distanceTo(player.position);
+                if (distanceToPlayer < 40 && alligator.userData.state !== 'chase' && !isInCar) {
+                    alligator.userData.state = 'chase';
+                }
+                if (alligator.userData.state === 'chase') {
+                    const direction = new THREE.Vector3().subVectors(player.position, alligator.position).normalize();
+                    alligator.position.add(direction.multiplyScalar(alligator.userData.speed * delta));
+                    alligator.lookAt(player.position);
+                    if (distanceToPlayer < 1.5) endGame();
+                } else {
+                    if (alligator.position.distanceTo(alligator.userData.patrolTarget) < 2) {
+                        alligator.userData.patrolTarget.set((Math.random() - 0.5) * worldSize, 0.25, (Math.random() - 0.5) * worldSize);
+                    }
+                    const direction = new THREE.Vector3().subVectors(alligator.userData.patrolTarget, alligator.position).normalize();
+                    alligator.position.add(direction.multiplyScalar(alligator.userData.speed * 0.5 * delta));
+                    alligator.lookAt(alligator.userData.patrolTarget);
+                }
+            });
+        }
+
+        function shoot() {
+            if (isInCar) return;
+            const bullet = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffff00 }));
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            bullet.position.copy(player.position).add(new THREE.Vector3(0, 1.5, 0)).add(direction.clone().multiplyScalar(1.5));
+            bullet.velocity = direction.multiplyScalar(150);
+            bullets.push(bullet);
+            scene.add(bullet);
+        }
+
+        function updateBullets(delta) {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                bullet.position.add(bullet.velocity.clone().multiplyScalar(delta));
+                for (let j = alligators.length - 1; j >= 0; j--) {
+                    if (bullet.position.distanceTo(alligators[j].position) < 2) {
+                        alligators[j].userData.health--;
+                        if (alligators[j].userData.health <= 0) killAlligator(j);
+                        scene.remove(bullet);
+                        bullets.splice(i, 1);
+                        break; 
+                    }
+                }
+                if (bullet && bullet.position.distanceTo(player.position) > 200) {
+                    scene.remove(bullet);
+                    bullets.splice(i, 1);
+                }
+            }
+        }
+
+        function killAlligator(index) {
+            scene.remove(alligators[index]);
+            alligators.splice(index, 1);
+            caimanCountUI.textContent = alligators.length;
+            if (alligators.length === 0) endGame(true);
+        }
+
+        function updateUI() {
+            staminaBarUI.style.width = stamina + '%';
+        }
+
+        function endGame(win = false) {
+            gameOver = true;
+            document.exitPointerLock();
+            if (win) {
+                gameOverUI.innerHTML = `<h1>¡FELICITACIONES, HAS GANADO!</h1><button onclick="location.reload()">Jugar de Nuevo</button>`;
+                gameOverUI.style.backgroundColor = 'rgba(0, 150, 0, 0.8)';
+            } else {
+                gameOverUI.innerHTML = `<h1>¡HAS SIDO CAZADO!</h1><p style="font-size: 0.6em;">¿Reintentar?</p><button onclick="location.reload()">Jugar de Nuevo</button>`;
+            }
+            gameOverUI.style.display = 'block';
+        }
+
+        // No se llama a init() aquí, se llama al presionar el botón de Jugar.
+    </script>
+</body>
+</html>

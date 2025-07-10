@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Opciones</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            text-align: center;
+            overflow: hidden; /* Evita barras de scroll */
+        }
+
+        .page {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: opacity 0.5s;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #main-menu {
+            background-color: #333;
+            color: white;
+        }
+
+        #adivina-page {
+            background-color: #ffeb3b; /* Amarillo */
+            color: #333;
+        }
+
+        #mejor-page {
+            background-color: #e1bee7; /* Lavanda */
+            color: #333;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 40px;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap; /* Permite que los botones se ajusten */
+        }
+
+        button {
+            font-size: 1.5em;
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .main-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .choice-btn {
+            background-color: #008CBA;
+            color: white;
+        }
+
+        #steven-btn {
+            position: relative;
+            background-color: #f44336;
+        }
+
+        #success-message, #mejor-success-message {
+            font-size: 2em;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        /* Estilos para los botones con imágenes */
+        .image-choices {
+            align-items: stretch;
+        }
+
+        .image-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 20px;
+            border: 3px solid #6a1b9a;
+            border-radius: 15px;
+            background-color: white;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 280px;
+        }
+
+        .image-button:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+
+        .image-button img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .image-button p {
+            font-size: 1.8em;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #4a148c;
+        }
+
+        /* --- ESTILOS ADAPTABLES (RESPONSIVE) --- */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+                margin-bottom: 30px;
+            }
+
+            button {
+                font-size: 1.2em;
+                padding: 12px 24px;
+            }
+
+            #success-message, #mejor-success-message {
+                font-size: 1.5em;
+            }
+
+            .button-container.image-choices {
+                flex-direction: column; /* Apila las imágenes verticalmente */
+                align-items: center;
+            }
+
+            .image-button {
+                width: 80%; /* Ocupa más ancho en móviles */
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Página del Menú Principal -->
+    <div id="main-menu" class="page">
+        <h1>Elige una opción</h1>
+        <div class="button-container">
+            <button id="go-adivina" class="main-btn">Adivina</button>
+            <button id="go-mejor" class="main-btn">¿La mejor?</button>
+        </div>
+    </div>
+
+    <!-- Página de "Adivina" -->
+    <div id="adivina-page" class="page hidden">
+        <div id="question-content">
+            <h1>¿Quién es mejor?</h1>
+            <div class="button-container">
+                <button id="steven-btn" class="choice-btn">Steven</button>
+                <button id="jorge-btn" class="choice-btn">Jorge</button>
+            </div>
+        </div>
+        <div id="success-content" class="hidden">
+            <h1 id="success-message">¡Felicitaciones, elegiste la rpta correcta!, Jorge ha demostrado mayor esfuerzo a comparacion de Steven.</h1>
+            <div class="button-container">
+                <button id="retry-btn" class="choice-btn">Reintentar</button>
+                <button id="exit-btn" class="choice-btn">Salir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Página de "¿La mejor?" -->
+    <div id="mejor-page" class="page hidden">
+        <div id="mejor-question-content">
+            <h1>Elije</h1>
+            <div class="button-container image-choices">
+                <div id="angie-choice" class="image-button">
+                    <img src="https://raw.githubusercontent.com/JC-004/fotos/main/angie.jpg" alt="Imagen de Angie">
+                    <p>Angie</p>
+                </div>
+                <div id="avi-choice" class="image-button">
+                    <img src="https://raw.githubusercontent.com/JC-004/fotos/main/avi.jpg" alt="Imagen de Avi">
+                    <p>Avi❤️</p>
+                </div>
+            </div>
+        </div>
+        <div id="mejor-success-content" class="hidden">
+            <h1 id="mejor-success-message"></h1>
+            <div class="button-container">
+                <button id="retry-mejor-btn" class="choice-btn">Reintentar</button>
+                <button id="exit-mejor-btn" class="choice-btn">Salir</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Elementos del DOM ---
+        const mainMenuPage = document.getElementById('main-menu');
+        const adivinaPage = document.getElementById('adivina-page');
+        const mejorPage = document.getElementById('mejor-page');
+        
+        const goAdivinaBtn = document.getElementById('go-adivina');
+        const goMejorBtn = document.getElementById('go-mejor');
+        
+        // Elementos de la página "Adivina"
+        const questionContent = document.getElementById('question-content');
+        const successContent = document.getElementById('success-content');
+        const stevenBtn = document.getElementById('steven-btn');
+        const jorgeBtn = document.getElementById('jorge-btn');
+        const retryBtn = document.getElementById('retry-btn');
+        const exitBtn = document.getElementById('exit-btn');
+
+        // Elementos de la página "¿La mejor?"
+        const mejorQuestionContent = document.getElementById('mejor-question-content');
+        const mejorSuccessContent = document.getElementById('mejor-success-content');
+        const angieChoice = document.getElementById('angie-choice');
+        const aviChoice = document.getElementById('avi-choice');
+        const mejorSuccessMessage = document.getElementById('mejor-success-message');
+        const retryMejorBtn = document.getElementById('retry-mejor-btn');
+        const exitMejorBtn = document.getElementById('exit-mejor-btn');
+
+        // --- Navegación ---
+        goAdivinaBtn.addEventListener('click', () => {
+            mainMenuPage.classList.add('hidden');
+            adivinaPage.classList.remove('hidden');
+        });
+
+        goMejorBtn.addEventListener('click', () => {
+            mainMenuPage.classList.add('hidden');
+            mejorPage.classList.remove('hidden');
+        });
+
+        exitBtn.addEventListener('click', () => {
+            adivinaPage.classList.add('hidden');
+            mainMenuPage.classList.remove('hidden');
+            successContent.classList.add('hidden');
+            questionContent.classList.remove('hidden');
+        });
+
+        exitMejorBtn.addEventListener('click', () => {
+            mejorPage.classList.add('hidden');
+            mainMenuPage.classList.remove('hidden');
+            mejorSuccessContent.classList.add('hidden');
+            mejorQuestionContent.classList.remove('hidden');
+        });
+
+        // --- Lógica del Juego "Adivina" ---
+        stevenBtn.addEventListener('click', () => {
+            stevenBtn.style.position = 'absolute';
+            const x = Math.random() * (window.innerWidth - stevenBtn.clientWidth);
+            const y = Math.random() * (window.innerHeight - stevenBtn.clientHeight);
+            stevenBtn.style.left = `${x}px`;
+            stevenBtn.style.top = `${y}px`;
+        });
+
+        jorgeBtn.addEventListener('click', () => {
+            questionContent.classList.add('hidden');
+            successContent.classList.remove('hidden');
+        });
+
+        retryBtn.addEventListener('click', () => {
+            successContent.classList.add('hidden');
+            questionContent.classList.remove('hidden');
+            stevenBtn.style.position = 'relative';
+            stevenBtn.style.left = 'auto';
+            stevenBtn.style.top = 'auto';
+        });
+
+        // --- Lógica del Juego "¿La mejor?" ---
+        function showMejorResult(message) {
+            mejorQuestionContent.classList.add('hidden');
+            mejorSuccessMessage.textContent = message;
+            mejorSuccessContent.classList.remove('hidden');
+        }
+
+        angieChoice.addEventListener('click', () => {
+            showMejorResult('Felicitaciones rpta correcta 70%');
+        });
+
+        aviChoice.addEventListener('click', () => {
+            showMejorResult('Felicitaciones rpta correcta 90%');
+        });
+        
+        retryMejorBtn.addEventListener('click', () => {
+            mejorSuccessContent.classList.add('hidden');
+            mejorQuestionContent.classList.remove('hidden');
+        });
+
+    </script>
+
+</body>
+</html>
