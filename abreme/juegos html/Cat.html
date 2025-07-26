@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Gato LGBT</title>
+  <style>
+    body {
+      background: black;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      cursor: pointer;
+    }
+    img {
+      max-width: 80%;
+      height: auto;
+      border: 5px solid white;
+      border-radius: 20px;
+      box-shadow: 0 0 20px magenta;
+    }
+    #mensaje {
+      position: absolute;
+      top: 20px;
+      color: white;
+      font-family: monospace;
+      text-align: center;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="mensaje">Haz clic para comenzar el sonido 🐔 (clic de nuevo para pausarlo)</div>
+
+  <audio id="audio" loop>
+    <source src="https://github.com/JC-004/juego-angry/raw/main/gallina.mp3" type="audio/mpeg">
+  </audio>
+
+  <img src="https://media.giphy.com/media/sIIhZliB2McAo/giphy.gif" alt="Nyan Cat">
+
+  <script>
+    const audio = document.getElementById('audio');
+    const mensaje = document.getElementById('mensaje');
+    let isPlaying = false;
+
+    document.body.addEventListener('click', () => {
+      if (!isPlaying) {
+        audio.play().then(() => {
+          isPlaying = true;
+          mensaje.innerText = "Haz clic para pausar el sonido 🛑";
+        }).catch(err => {
+          mensaje.innerText = "No se pudo reproducir el audio automáticamente.";
+          console.error(err);
+        });
+      } else {
+        audio.pause();
+        isPlaying = false;
+        mensaje.innerText = "Haz clic para reproducir el sonido 🐔";
+      }
+    });
+  </script>
+</body>
+</html>
