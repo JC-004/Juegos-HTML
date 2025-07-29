@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imberbe PvZ - La Versión Final</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #3b2e2a;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #d2b48c;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        #game-container {
+            position: relative; /* Necesario para posicionar mensajes */
+            display: flex;
+            border: 5px solid #4a2e2a;
+            background-color: #5d3a3a;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        #game-grid {
+            display: grid;
+            /* AJUSTE FINAL DE ALINEACIÓN */
+            grid-template-columns: repeat(9, 57px);
+            grid-template-rows: repeat(5, 60px);
+            gap: 7px 8px;
+            background: url('https://tse2.mm.bing.net/th/id/OIP.hDL41ewKqpT-BxKKaBVo7QHaFj?w=960&h=720&rs=1&pid=ImgDetMain&o=7&rm=3');
+            background-size: cover;
+            background-position: center;
+            border: 3px solid #255913;
+            /* AJUSTE FINAL DE ALINEACIÓN */
+            padding: 28px 25px 25px 40px;
+        }
+
+        .grid-cell {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            background-color: rgba(255, 255, 255, 0.08);
+            transition: background-color 0.2s;
+        }
+
+        .grid-cell:hover {
+            background-color: rgba(173, 255, 47, 0.3);
+        }
+
+        #sidebar {
+            width: 160px;
+            padding: 10px;
+            background-color: #a0522d;
+            border-left: 5px solid #4a2e2a;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #plant-selection {
+            overflow-y: auto;
+        }
+
+        .plant-card {
+            cursor: pointer;
+            border: 3px solid transparent;
+            padding: 5px;
+            margin-bottom: 10px;
+            background-color: #cd853f;
+            border-radius: 5px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .plant-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 8px #ffd700;
+        }
+
+        .plant-card.selected {
+            border-color: #ffd700;
+            box-shadow: 0 0 15px #ffd700;
+            transform: scale(1.05);
+        }
+
+        .plant-card img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+        }
+        
+        .plant-card p {
+            margin: 2px 0;
+            font-size: 12px;
+        }
+        
+        #start-wave, #restart-button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #d32f2f;
+            color: white;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+
+        #start-wave:hover {
+            background-color: #f44336;
+        }
+        
+        #start-wave:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        #restart-button {
+            background-color: #1976d2;
+            display: none;
+        }
+        
+        #sun-container {
+            font-size: 18px;
+            font-weight: bold;
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .plant, .zombie, .pea, .sun {
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        .plant {
+            width: 50px;
+            height: 50px;
+        }
+
+        .zombie {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            z-index: 5;
+            transition: filter 0.5s;
+        }
+        
+        .zombie.slowed {
+            filter: drop-shadow(0 0 5px cyan) brightness(0.8);
+        }
+
+        .pea {
+            width: 15px;
+            height: 15px;
+            background-color: #9acd32;
+            border-radius: 50%;
+            box-shadow: 0 0 5px #fff;
+            z-index: 10;
+        }
+        
+        .ice-pea {
+            background-color: #00ffff;
+            box-shadow: 0 0 8px #fff;
+        }
+
+        .sun {
+            width: 40px;
+            height: 40px;
+            background-color: #ffd700;
+            border-radius: 50%;
+            z-index: 20;
+            cursor: pointer;
+            pointer-events: all;
+            box-shadow: 0 0 15px #ffec8b;
+            border: 2px solid #ffc700;
+        }
+        
+        .wave-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: red;
+            text-shadow: 3px 3px 5px black;
+            z-index: 100;
+            pointer-events: none;
+            animation: fadeOut 4s forwards;
+        }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Imberbe PvZ - La Versión Final</h1>
+    <div id="game-container">
+        <div id="game-grid"></div>
+        <div id="sidebar">
+            <div id="plant-selection">
+                <h2>Plantas</h2>
+                <div class="plant-card" data-plant="sunflower" data-cost="25">
+                    <img src="https://th.bing.com/th/id/R.52db7056f02f100ead51cd472e6f246c?rik=M%2fgOxRMp85tHgg&riu=http%3a%2f%2fpm1.narvii.com%2f7627%2f009279e875e2f61c11b9d1970f9d664bfdd47bf8r1-415-407v2_uhq.jpg&ehk=IOnUsk9gYq8BDD9MtHLgEJPFzXsJlj5%2bvcRSYZ6mrdw%3d&risl=&pid=ImgRaw&r=0" alt="Girasol">
+                    <p>Girasol</p>
+                    <p>Costo: 25 ☀️</p>
+                </div>
+                <div class="plant-card" data-plant="peashooter" data-cost="50">
+                    <img src="https://th.bing.com/th/id/R.aa9d5c8ca6d25d8cff7ac21953d0983f?rik=9rgrfGJd3kBCpQ&riu=http%3a%2f%2fpm1.narvii.com%2f6485%2f35d97dbc5dbef957ff5691ac278872684c829d34_00.jpg&ehk=1mOp7Rvwj6As7%2bvKqcx1PyjF08N%2b5vckT9zBs3o9Iqg%3d&risl=&pid=ImgRaw&r=0" alt="Lanzaguisantes">
+                    <p>Lanzaguisantes</p>
+                    <p>Costo: 50 ☀️</p>
+                </div>
+                <div class="plant-card" data-plant="ice-peashooter" data-cost="75">
+                    <img src="https://tse2.mm.bing.net/th/id/OIP.Qy224SSiG1rGdXxSrwV4BgHaF-?rs=1&pid=ImgDetMain&o=7&rm=3" alt="Lanzaguisantes Hielo">
+                    <p>Lanzaguisantes Hielo</p>
+                    <p>Costo: 75 ☀️</p>
+                </div>
+                <div class="plant-card" data-plant="repeater" data-cost="100">
+                    <img src="https://th.bing.com/th/id/R.442ac2e0592daffb4ddb2c3a15984dd3?rik=JpQM%2fOIHFMCCww&pid=ImgRaw&r=0" alt="Repetidora">
+                    <p>Repetidora</p>
+                    <p>Costo: 100 ☀️</p>
+                </div>
+            </div>
+            <div>
+                <div id="sun-container">☀️ <span id="sun-amount">15000</span></div>
+                <button id="start-wave">¡INICIAR INVASIÓN!</button>
+                <button id="restart-button">Reiniciar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURACIÓN DEL JUEGO ---
+            const PLANT_DATA = {
+                'sunflower': { cost: 25, img: 'https://th.bing.com/th/id/R.52db7056f02f100ead51cd472e6f246c?rik=M%2fgOxRMp85tHgg&riu=http%3a%2f%2fpm1.narvii.com%2f7627%2f009279e875e2f61c11b9d1970f9d664bfdd47bf8r1-415-407v2_uhq.jpg&ehk=IOnUsk9gYq8BDD9MtHLgEJPFzXsJlj5%2bvcRSYZ6mrdw%3d&risl=&pid=ImgRaw&r=0' },
+                'peashooter': { cost: 50, img: 'https://th.bing.com/th/id/R.aa9d5c8ca6d25d8cff7ac21953d0983f?rik=9rgrfGJd3kBCpQ&riu=http%3a%2f%2fpm1.narvii.com%2f6485%2f35d97dbc5dbef957ff5691ac278872684c829d34_00.jpg&ehk=1mOp7Rvwj6As7%2bvKqcx1PyjF08N%2b5vckT9zBs3o9Iqg%3d&risl=&pid=ImgRaw&r=0' },
+                'ice-peashooter': { cost: 75, img: 'https://tse2.mm.bing.net/th/id/OIP.Qy224SSiG1rGdXxSrwV4BgHaF-?rs=1&pid=ImgDetMain&o=7&rm=3' },
+                'repeater': { cost: 100, img: 'https://th.bing.com/th/id/R.442ac2e0592daffb4ddb2c3a15984dd3?rik=JpQM%2fOIHFMCCww&pid=ImgRaw&r=0' }
+            };
+            const ZOMBIE_DATA = {
+                // --- URLs DE IMÁGENES CORREGIDAS ---
+                'regular': { health: 100, speed: 60, img: 'https://vignette.wikia.nocookie.net/plantsvszombies/images/4/44/Zombie_Suit.jpg/revision/latest?cb=20160718231530&path-prefix=es' },
+                'conehead': { health: 250, speed: 65, img: 'https://tse4.mm.bing.net/th/id/OIP.jvWc6GbiG3d8aR5fYIdGCAAAAA?rs=1&pid=ImgDetMain&o=7&rm=3' },
+                'buckethead': { health: 500, speed: 70, img: 'https://tse1.mm.bing.net/th/id/OIP.Sb2mlYY08j2t4f9Muf13lgAAAA?rs=1&pid=ImgDetMain&o=7&rm=3' },
+                'football': { health: 650, speed: 40, img: 'https://i.pinimg.com/736x/76/84/0e/76840e1cec770028714c61d95d4f9fb4.jpg' }
+            };
+            const ZOMBIE_TYPES = Object.keys(ZOMBIE_DATA);
+
+            // --- ELEMENTOS DEL DOM ---
+            const gameGrid = document.getElementById('game-grid');
+            const sunAmountSpan = document.getElementById('sun-amount');
+            const startWaveButton = document.getElementById('start-wave');
+            const restartButton = document.getElementById('restart-button');
+            const plantCards = document.querySelectorAll('.plant-card');
+            const gameContainer = document.getElementById('game-container');
+
+            // --- VARIABLES DEL JUEGO ---
+            let sunAmount = 15000;
+            let selectedPlant = { type: null, cost: 0 };
+            let waveInProgress = false;
+            let finalWaveAnnounced = false;
+            let gameIntervals = [];
+
+            // --- INICIALIZACIÓN ---
+            for (let i = 0; i < 45; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('grid-cell');
+                cell.dataset.row = Math.floor(i / 9);
+                gameGrid.appendChild(cell);
+            }
+            const cells = document.querySelectorAll('.grid-cell');
+            
+            // --- MANEJO DE PLANTAS Y SOLES ---
+            plantCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const plantType = card.dataset.plant;
+                    const plantCost = PLANT_DATA[plantType].cost;
+                    if (sunAmount >= plantCost) {
+                        selectedPlant = { type: plantType, cost: plantCost };
+                        plantCards.forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                    } else {
+                        alert('¡No tienes suficiente sol!');
+                    }
+                });
+            });
+
+            cells.forEach(cell => {
+                cell.addEventListener('click', () => {
+                    if (selectedPlant.type && !cell.hasChildNodes()) {
+                        placePlant(cell, selectedPlant.type);
+                        sunAmount -= selectedPlant.cost;
+                        sunAmountSpan.textContent = sunAmount;
+                        selectedPlant = { type: null, cost: 0 };
+                        plantCards.forEach(c => c.classList.remove('selected'));
+                    }
+                });
+            });
+            
+            function placePlant(cell, plantType) {
+                const plant = document.createElement('img');
+                plant.src = PLANT_DATA[plantType].img;
+                plant.classList.add('plant');
+                cell.appendChild(plant);
+
+                let logicInterval;
+                switch (plantType) {
+                    case 'sunflower':
+                        logicInterval = setInterval(() => createSun(cell), 18000);
+                        break;
+                    case 'repeater':
+                        logicInterval = setInterval(() => {
+                            if (zombiesExistInRow(cell.dataset.row)) {
+                                createPea(cell, 'normal');
+                                setTimeout(() => createPea(cell, 'normal'), 150);
+                            }
+                        }, 2000);
+                        break;
+                    case 'ice-peashooter':
+                        logicInterval = setInterval(() => {
+                            if (zombiesExistInRow(cell.dataset.row)) createPea(cell, 'ice');
+                        }, 2000);
+                        break;
+                    default: // Peashooter
+                        logicInterval = setInterval(() => {
+                           if (zombiesExistInRow(cell.dataset.row)) createPea(cell, 'normal');
+                        }, 2000);
+                }
+                gameIntervals.push(logicInterval);
+            }
+
+            function createSun(originCell) {
+                const sun = document.createElement('div');
+                sun.classList.add('sun');
+                const originRect = originCell.getBoundingClientRect();
+                sun.style.top = `${originRect.top + 5}px`;
+                sun.style.left = `${originRect.left + 5}px`;
+                document.body.appendChild(sun);
+
+                sun.addEventListener('click', () => {
+                    sunAmount += 25;
+                    sunAmountSpan.textContent = sunAmount;
+                    sun.remove();
+                });
+
+                const timeoutId = setTimeout(() => {
+                    if (document.body.contains(sun)) {
+                        sun.remove();
+                    }
+                }, 8000);
+                gameIntervals.push(timeoutId);
+            }
+
+            // --- MANEJO DE PROYECTILES ---
+            function createPea(startCell, peaType) {
+                const pea = document.createElement('div');
+                pea.classList.add('pea');
+                if (peaType === 'ice') {
+                    pea.classList.add('ice-pea');
+                    pea.dataset.type = 'ice';
+                }
+                const startRect = startCell.getBoundingClientRect();
+                pea.style.position = 'absolute';
+                pea.style.top = `${startRect.top + 20}px`;
+                pea.style.left = `${startRect.left + 45}px`;
+                document.body.appendChild(pea);
+                movePea(pea);
+            }
+
+            function movePea(pea) {
+                const moveInterval = setInterval(() => {
+                    if (!document.body.contains(pea)) {
+                        clearInterval(moveInterval);
+                        return;
+                    }
+                    pea.style.left = `${parseInt(pea.style.left) + 5}px`;
+                    document.querySelectorAll('.zombie').forEach(zombie => {
+                        if (checkCollision(pea, zombie)) {
+                            pea.remove();
+                            clearInterval(moveInterval);
+                            handleZombieHit(zombie, pea.dataset.type);
+                        }
+                    });
+                    if (parseInt(pea.style.left) > window.innerWidth) {
+                        pea.remove();
+                        clearInterval(moveInterval);
+                    }
+                }, 20);
+                gameIntervals.push(moveInterval);
+            }
+
+            // --- MANEJO DE ZOMBIS Y OLEADA ---
+            startWaveButton.addEventListener('click', () => {
+                if (!waveInProgress) {
+                    waveInProgress = true;
+                    startWaveButton.disabled = true;
+                    spawnWave();
+                }
+            });
+            
+            function spawnWave() {
+                const zombieCount = 40;
+                let zombiesSpawned = 0;
+                for (let i = 0; i < zombieCount; i++) {
+                    const spawnTimeout = setTimeout(() => {
+                        const randomType = ZOMBIE_TYPES[Math.floor(Math.random() * ZOMBIE_TYPES.length)];
+                        createZombie(randomType);
+                        zombiesSpawned++;
+
+                        if (zombiesSpawned > zombieCount * 0.7 && !finalWaveAnnounced) {
+                            displayWaveMessage("¡¡ORDA FINAL!!");
+                            finalWaveAnnounced = true;
+                        }
+
+                         if (zombiesSpawned === zombieCount) {
+                            const winCheck = setInterval(() => {
+                                if (document.querySelectorAll('.zombie').length === 0 && waveInProgress) {
+                                    gameOver(true);
+                                    clearInterval(winCheck);
+                                }
+                            }, 1000);
+                            gameIntervals.push(winCheck);
+                         }
+                    }, i * 2300);
+                    gameIntervals.push(spawnTimeout);
+                }
+            }
+
+            function createZombie(type) {
+                const zombieData = ZOMBIE_DATA[type];
+                const zombie = document.createElement('img');
+                zombie.src = zombieData.img;
+                zombie.classList.add('zombie');
+                const randomRow = Math.floor(Math.random() * 5);
+                zombie.dataset.row = randomRow;
+                zombie.dataset.health = zombieData.health;
+                const gameRect = gameContainer.getBoundingClientRect();
+                // Ajuste de posición vertical del zombi para que coincida con la celda
+                zombie.style.position = 'absolute';
+                zombie.style.top = `${gameRect.top + (randomRow * 67) + 33}px`;
+                zombie.style.left = `${gameRect.right - 60}px`;
+                document.body.appendChild(zombie);
+                moveZombie(zombie, zombieData.speed);
+            }
+
+            function moveZombie(zombie, baseSpeed) {
+                const moveInterval = setInterval(() => {
+                    if (!document.body.contains(zombie)) {
+                        clearInterval(moveInterval);
+                        return;
+                    }
+                    
+                    let currentSpeed = baseSpeed;
+                    if (zombie.classList.contains('slowed')) {
+                        currentSpeed = baseSpeed * 2; // El doble de lento
+                    }
+
+                    if (!isEating(zombie)) {
+                        // El movimiento se maneja con un timeout para respetar la velocidad
+                        setTimeout(() => {
+                           if(document.body.contains(zombie)) {
+                               zombie.style.left = `${parseInt(zombie.style.left) - 1}px`;
+                           }
+                        }, currentSpeed);
+                    }
+
+                    if (parseInt(zombie.style.left) < gameContainer.getBoundingClientRect().left - 20) {
+                        gameOver(false);
+                    }
+                }, 20); // Intervalo de chequeo de posición
+                gameIntervals.push(moveInterval);
+            }
+
+            function handleZombieHit(zombie, peaType) {
+                let health = parseInt(zombie.dataset.health) - 50;
+                zombie.dataset.health = health;
+                if (peaType === 'ice' && !zombie.classList.contains('slowed')) {
+                    zombie.classList.add('slowed');
+                    const slowTimeout = setTimeout(() => {
+                         if(document.body.contains(zombie)) zombie.classList.remove('slowed');
+                    }, 3000);
+                    gameIntervals.push(slowTimeout);
+                }
+                if (health <= 0) {
+                    zombie.remove();
+                }
+            }
+            
+            // --- FUNCIONES AUXILIARES Y LÓGICA DEL JUEGO ---
+            function displayWaveMessage(text) {
+                const message = document.createElement('div');
+                message.classList.add('wave-message');
+                message.textContent = text;
+                gameContainer.appendChild(message);
+                setTimeout(() => message.remove(), 4000);
+            }
+
+            function zombiesExistInRow(row) {
+                return document.querySelectorAll(`.zombie[data-row="${row}"]`).length > 0;
+            }
+
+            function isEating(zombie) {
+                let eating = false;
+                document.querySelectorAll('.plant').forEach(plant => {
+                    if (plant.parentElement.dataset.row == zombie.dataset.row && checkCollision(zombie, plant)) {
+                        eating = true;
+                    }
+                });
+                return eating;
+            }
+            
+            function checkCollision(a, b) {
+                const aRect = a.getBoundingClientRect();
+                const bRect = b.getBoundingClientRect();
+                return !(aRect.right < bRect.left || aRect.left > bRect.right || aRect.bottom < bRect.top || aRect.top > bRect.bottom);
+            }
+            
+            function gameOver(isVictory) {
+                if (!waveInProgress) return;
+                waveInProgress = false;
+
+                gameIntervals.forEach(interval => clearInterval(interval));
+                gameIntervals.forEach(timeout => clearTimeout(timeout));
+                gameIntervals = [];
+
+                setTimeout(() => {
+                    alert(isVictory ? "¡VICTORIA! ¡Has defendido tu jardín de la invasión!" : "¡DERROTA! Los zombis se comieron tu cerebro.");
+                }, 100);
+
+                startWaveButton.style.display = 'none';
+                restartButton.style.display = 'block';
+                music.pause(); // Detiene la música
+                toggleBtn.textContent = "▶️ Reproducir música"; // Actualiza el texto del botón
+
+            }
+
+            restartButton.addEventListener('click', () => location.reload());
+        });
+    </script>
+
+
+    <!-- Audio de fondo -->
+<audio id="background-music" src="https://github.com/JC-004/Juegos-HTML/raw/main/abreme/musica%20de%20fondo/cancion.mp3" loop></audio>
+
+<!-- Botón de música -->
+<button id="music-toggle" style="
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    background-color: #4caf50;
+    color: white;
+    padding: 10px;
+    font-size: 14px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+">▶️ Reproducir música</button>
+
+<script>
+    const music = document.getElementById("background-music");
+    const toggleBtn = document.getElementById("music-toggle");
+
+    music.volume = 0.5;
+
+    toggleBtn.addEventListener("click", () => {
+        if (music.paused) {
+            music.play();
+            toggleBtn.textContent = "⏸️ Pausar música";
+        } else {
+            music.pause();
+            toggleBtn.textContent = "▶️ Reproducir música";
+        }
+    });
+
+    // Iniciar música tras primer clic en cualquier parte del documento
+    document.addEventListener("click", () => {
+        if (music.paused) {
+            music.play();
+            toggleBtn.textContent = "⏸️ Pausar música";
+        }
+    }, { once: true });
+</script>
+
+
+
+
+
+</body>
+</html>
