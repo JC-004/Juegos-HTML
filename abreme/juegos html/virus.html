@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYSTEM FAILURE</title>
+    <!-- Se incluye Tailwind CSS para los estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        /* Estilo para un look de terminal retro */
+        body {
+            font-family: 'VT323', monospace;
+            background-color: #000;
+            color: #00ff41; /* Verde brillante */
+            text-shadow: 0 0 5px #00ff41;
+        }
+        /* Efecto de parpadeo para el cursor */
+        .cursor {
+            display: inline-block;
+            background-color: #00ff41;
+            width: 10px;
+            height: 1.2rem;
+            animation: blink 1s step-end infinite;
+            box-shadow: 0 0 5px #00ff41;
+        }
+        @keyframes blink {
+            from, to { background-color: transparent; }
+            50% { background-color: #00ff41; }
+        }
+    </style>
+</head>
+<body class="bg-black flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl mx-auto bg-black/50 border-2 border-green-500/50 rounded-lg p-6 shadow-[0_0_20px_rgba(0,255,65,0.5)]">
+        <!-- Encabezado con icono de advertencia -->
+        <div class="flex items-center space-x-4 mb-4">
+            <svg class="w-10 h-10 text-red-500 animate-pulse" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <h1 class="text-2xl md:text-4xl font-bold text-red-500">ALERTA DE SEGURIDAD</h1>
+        </div>
+
+        <!-- Consola de texto animado -->
+        <div id="terminal" class="text-lg md:text-xl h-48 bg-gray-900/50 p-4 rounded-md border border-gray-700 overflow-y-auto">
+            <span id="output"></span><span class="cursor"></span>
+        </div>
+
+        <!-- Barra de progreso falsa -->
+        <div class="mt-6">
+            <p id="progress-text" class="mb-2 text-yellow-400">Iniciando análisis del sistema...</p>
+            <div class="w-full bg-gray-700 rounded-full h-4 border border-gray-500">
+                <div id="progress-bar" class="bg-red-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        const finalAlertMessage = "Gracias por descargar este archivo. He desplegado spyware para monitorear tu sistema. Todos tus datos ahora son míos.";
+        const linesToType = [
+            "Iniciando conexión con el host...",
+            "Acceso concedido. IP: 192.168.1.101",
+            "Buscando vulnerabilidades...",
+            "Vulnerabilidad encontrada: CVE-2024-XXXX",
+            "Explotando kernel...",
+            "Escalando privilegios a root...",
+            "Acceso completo al sistema obtenido.",
+            "Desplegando carga útil: 'spyware.exe'",
+            "Instalación completada.",
+            "Borrando rastros..."
+        ];
+
+        // --- LÓGICA DEL SCRIPT ---
+        const outputEl = document.getElementById('output');
+        const progressBarEl = document.getElementById('progress-bar');
+        const progressTextEl = document.getElementById('progress-text');
+        let lineIndex = 0;
+        let charIndex = 0;
+
+        function typeWriter() {
+            if (lineIndex < linesToType.length) {
+                if (charIndex < linesToType[lineIndex].length) {
+                    outputEl.innerHTML += linesToType[lineIndex].charAt(charIndex);
+                    charIndex++;
+                    setTimeout(typeWriter, 30); // Velocidad de escritura
+                } else {
+                    outputEl.innerHTML += '<br>';
+                    charIndex = 0;
+                    lineIndex++;
+                    updateProgress();
+                    setTimeout(typeWriter, 500); // Pausa entre líneas
+                }
+                // Auto-scroll hacia abajo
+                const terminal = document.getElementById('terminal');
+                terminal.scrollTop = terminal.scrollHeight;
+            } else {
+                // Finaliza la escritura y muestra la alerta
+                progressTextEl.textContent = "¡Análisis Completado! Acción Requerida.";
+                setTimeout(() => alert(finalAlertMessage), 500);
+            }
+        }
+
+        function updateProgress() {
+            const progress = (lineIndex / linesToType.length) * 100;
+            progressBarEl.style.width = `${progress}%`;
+            if (lineIndex > 5) {
+                progressTextEl.textContent = "Ejecutando scripts maliciosos...";
+                progressBarEl.classList.remove('bg-red-600');
+                progressBarEl.classList.add('bg-yellow-500');
+            }
+        }
+
+        // Iniciar la animación cuando la ventana se cargue
+        window.onload = () => {
+            setTimeout(typeWriter, 1000); // Pequeña pausa inicial
+        };
+    </script>
+
+</body>
+</html>
