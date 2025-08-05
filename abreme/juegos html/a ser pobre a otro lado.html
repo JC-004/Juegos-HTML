@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡A ser pobre a otro lado!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #87CEEB; /* Sky blue */
+            color: #fff;
+            text-shadow: 2px 2px 4px #000000;
+        }
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            border: 8px solid #8B4513; /* Brown border */
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            background-color: #228B22; /* ForestGreen */
+            overflow: hidden;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            cursor: crosshair;
+            background-color: #3CB371; /* MediumSeaGreen */
+        }
+        .ui-element {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 2px solid #fff;
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 30px;
+            background-color: #555;
+            border-radius: 10px;
+            border: 2px solid #fff;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #1E90FF, #00BFFF);
+            width: 0%;
+            transition: width 0.2s linear;
+            border-radius: 8px 0 0 8px;
+        }
+        .modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            transition: opacity 0.3s;
+            z-index: 100;
+        }
+        .modal button {
+            background-color: #FFD700; /* Gold */
+            color: #4B0082; /* Indigo */
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 4px solid #4B0082;
+            text-shadow: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .modal button:hover {
+            transform: scale(1.05);
+        }
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <h1 class="text-4xl mb-4">¡¡A ser pobre a otro lado!!</h1>
+
+    <div class="game-container">
+        <!-- Game UI -->
+        <div class="p-4 bg-gray-800 flex justify-between items-center gap-4">
+            <div>
+                <span class="text-lg">Tiempo:</span>
+                <span id="timer" class="text-2xl text-yellow-300">30</span>
+            </div>
+            <div class="flex-grow">
+                <div class="progress-bar-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Modals -->
+        <div id="startModal" class="modal">
+            <h2 class="text-5xl mb-6">¡Molestalos!</h2>
+            <p class="mb-8 text-xl">¡Haz clic para mojar el campo y que dejen de jugar!</p>
+            <button onclick="startGame()">Empezar Juego</button>
+        </div>
+        <div id="resultModal" class="modal hidden">
+            <h2 id="resultTitle" class="text-6xl mb-6"></h2>
+            <p id="resultMessage" class="mb-8 text-2xl"></p>
+            <button onclick="startGame()">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const timerEl = document.getElementById('timer');
+    const progressBar = document.getElementById('progress-bar');
+    const startModal = document.getElementById('startModal');
+    const resultModal = document.getElementById('resultModal');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultMessage = document.getElementById('resultMessage');
+
+    let players = [];
+    let hecklers = []; // Los muñequitos molestos
+    let puddles = [];
+    let gameInterval;
+    let timerInterval;
+    let timeLeft;
+    let totalArea;
+    let wateredArea;
+
+    // --- Game Settings ---
+    const GAME_DURATION = 30; // seconds
+    const PUDDLE_RADIUS = 55; // Charcos más grandes
+    const PLAYER_COUNT = 5;   // 5 niños
+    const HECKLER_COUNT = 4;  // 4 muñequitos molestos
+
+    // --- Game Setup ---
+    function setupCanvas() {
+        const container = canvas.parentElement;
+        const width = container.clientWidth;
+        const height = width * 0.6; // Aspect ratio
+        canvas.width = width;
+        canvas.height = height;
+        totalArea = canvas.width * canvas.height;
+    }
+
+    function resetGame() {
+        clearInterval(gameInterval);
+        clearInterval(timerInterval);
+
+        puddles = [];
+        wateredArea = 0;
+        timeLeft = GAME_DURATION;
+
+        timerEl.textContent = timeLeft;
+        updateProgressBar();
+
+        // Create players
+        players = [];
+        for (let i = 0; i < PLAYER_COUNT; i++) {
+            players.push({
+                x: Math.random() * (canvas.width - 100) + 50,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 4,
+                vy: (Math.random() - 0.5) * 4,
+                emoji: '⚽'
+            });
+        }
+        
+        // Create hecklers
+        hecklers = [];
+        for (let i = 0; i < HECKLER_COUNT; i++) {
+            hecklers.push({
+                x: canvas.width - 15,
+                initialY: (i * (canvas.height / HECKLER_COUNT)) + 50,
+                y: (i * (canvas.height / HECKLER_COUNT)) + 50,
+                emoji: '😠',
+                angle: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    function startGame() {
+        resetGame();
+        startModal.classList.add('hidden');
+        resultModal.classList.add('hidden');
+        
+        gameInterval = setInterval(gameLoop, 1000 / 60); // 60 FPS
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timerEl.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                endGame(false);
+            }
+        }, 1000);
+    }
+
+    function endGame(isWin) {
+        clearInterval(gameInterval);
+        clearInterval(timerInterval);
+
+        if (isWin) {
+            resultTitle.textContent = "¡GANASTE!";
+            resultMessage.textContent = "¡La cancha está empapada!";
+        } else {
+            resultTitle.textContent = "¡PERDISTE!";
+            resultMessage.textContent = "Se acabó el tiempo. ¡Siguen jugando!";
+        }
+        resultModal.classList.remove('hidden');
+    }
+
+    // --- Drawing Functions ---
+    function drawBackground() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Field
+        ctx.fillStyle = '#3CB371';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Center circle
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, canvas.height / 2, 60, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
+
+        // Goals
+        ctx.fillStyle = '#FFF';
+        ctx.fillRect(-5, canvas.height / 2 - 40, 10, 80);
+        ctx.fillRect(canvas.width - 5, canvas.height / 2 - 40, 10, 80);
+
+        // Houses on the left
+        for(let i = 0; i < 5; i++) {
+            ctx.fillStyle = i % 2 === 0 ? '#CD853F' : '#D2B48C';
+            ctx.fillRect(5, i * (canvas.height/5) + 10, -30, 50);
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(-5, i * (canvas.height/5) + 20, 10, 10);
+        }
+    }
+
+    function drawPuddles() {
+        puddles.forEach(puddle => {
+            ctx.beginPath();
+            ctx.arc(puddle.x, puddle.y, puddle.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(30, 144, 255, 0.6)';
+            ctx.fill();
+        });
+    }
+
+    function drawPlayers() {
+        ctx.font = '24px sans-serif';
+        players.forEach(player => {
+            ctx.fillText(player.emoji, player.x, player.y);
+        });
+    }
+
+    function drawHecklers() {
+        ctx.font = '24px sans-serif';
+        hecklers.forEach(heckler => {
+            ctx.fillText(heckler.emoji, heckler.x, heckler.y);
+        });
+    }
+    
+    // --- Update Functions ---
+    function updatePlayers() {
+        players.forEach(player => {
+            player.x += player.vx;
+            player.y += player.vy;
+
+            if (player.x <= 20 || player.x >= canvas.width - 44) player.vx *= -1;
+            if (player.y <= 24 || player.y >= canvas.height) player.vy *= -1;
+        });
+    }
+
+    function updateHecklers() {
+        hecklers.forEach(heckler => {
+            // Bobbing up and down
+            heckler.y = heckler.initialY + Math.sin(heckler.angle) * 10;
+            heckler.angle += 0.05;
+        });
+    }
+
+    function updateProgressBar() {
+        const percentage = Math.min((wateredArea / (totalArea * 0.75)) * 100, 100);
+        progressBar.style.width = `${percentage}%`;
+        
+        if (percentage >= 100) {
+            endGame(true);
+        }
+    }
+
+    // --- Event Handlers ---
+    canvas.addEventListener('click', (e) => {
+        if (timeLeft <= 0 || timeLeft === GAME_DURATION) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        puddles.push({ x, y, radius: PUDDLE_RADIUS });
+        
+        wateredArea += Math.PI * PUDDLE_RADIUS * PUDDLE_RADIUS;
+        updateProgressBar();
+    });
+
+    // --- Game Loop ---
+    function gameLoop() {
+        drawBackground();
+        drawPuddles();
+
+        updatePlayers();
+        drawPlayers();
+
+        updateHecklers();
+        drawHecklers();
+    }
+
+    // --- Initial Load ---
+    window.addEventListener('resize', setupCanvas);
+    window.onload = () => {
+        setupCanvas();
+        drawBackground();
+    };
+
+</script>
+
+</body>
+</html>
