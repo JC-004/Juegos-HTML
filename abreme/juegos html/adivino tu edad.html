@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adivinador de Edad 🔮</title>
+    <style>
+        /* Estilos para que se vea bien */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: white;
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-bottom: 25px;
+            font-weight: 400;
+        }
+        
+        #welcome-message {
+            font-size: 1.2em;
+            color: #2980b9;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .btn-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-family: 'Poppins', sans-serif;
+            transition: background-color 0.3s, transform 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn.primary {
+             background-color: #27ae60;
+        }
+
+        .btn.primary:hover {
+             background-color: #229954;
+        }
+        
+        .hide {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="name-container">
+            <h1>Adivinador de Edad 🔮</h1>
+            <p>Responderás unas preguntas y trataré de adivinar tu edad. Primero, dime tu nombre.</p>
+            <div class="input-group">
+                <input type="text" id="name-input" placeholder="Escribe tu nombre aquí...">
+            </div>
+            <button class="btn primary" onclick="startGame()">Empezar</button>
+        </div>
+
+        <div id="quiz-container" class="hide">
+            <p id="welcome-message"></p>
+            <h2 id="question-text">Aquí va la pregunta</h2>
+            <div id="answer-buttons" class="btn-grid">
+                </div>
+        </div>
+        
+        <div id="result-container" class="hide">
+            <h1>¡Lo tengo!</h1>
+            <p id="result-text">El resultado aparecerá aquí.</p>
+            <button class="btn primary" onclick="restartGame()">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Referencias a los elementos del HTML ---
+        const nameContainer = document.getElementById('name-container');
+        const quizContainer = document.getElementById('quiz-container');
+        const resultContainer = document.getElementById('result-container');
+        
+        const nameInput = document.getElementById('name-input');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const questionText = document.getElementById('question-text');
+        const answerButtons = document.getElementById('answer-buttons');
+        const resultText = document.getElementById('result-text');
+
+        // --- Variables del juego ---
+        let userName = '';
+        let currentQuestionIndex = 0;
+        let ageScore = 0; // Aquí acumularemos los puntos
+
+        // --- Preguntas y sus valores ---
+        const questions = [
+            {
+                question: '¿Qué género de música prefieres para una fiesta?',
+                answers: [
+                    { text: 'Rock Clásico / 80s', value: 35 },
+                    { text: 'Pop Actual / Electrónica', value: 20 },
+                    { text: 'Reggaetón / Trap', value: 10 },
+                    { text: 'Salsa / Cumbia', value: 40 }
+                ]
+            },
+            {
+                question: '¿Cuál fue tu primera red social importante?',
+                answers: [
+                    { text: 'MySpace / Hi5', value: 30 },
+                    { text: 'Facebook', value: 25 },
+                    { text: 'Instagram', value: 15 },
+                    { text: 'TikTok', value: 10 }
+                ]
+            },
+            {
+                question: 'Para ver una película en casa, ¿qué eliges?',
+                answers: [
+                    { text: 'Poner un DVD o Blu-ray', value: 30 },
+                    { text: 'Buscarla en Netflix, Disney+, etc.', value: 15 },
+                    { text: 'Ni idea, mis padres la eligen', value: 5 },
+                    { text: 'Descargarla por Torrent', value: 25 }
+                ]
+            },
+            {
+                question: '¿Cómo era tu primer celular?',
+                answers: [
+                    { text: 'Un "ladrillo" que solo llamaba', value: 40 },
+                    { text: 'Uno con teclado físico (Blackberry)', value: 30 },
+                    { text: 'Mi primer celular ya era un Smartphone', value: 15 },
+                    { text: 'Todavía no tengo celular propio', value: 5 }
+                ]
+            }
+        ];
+
+        // --- Funciones del juego ---
+
+        function startGame() {
+            userName = nameInput.value.trim();
+            if (userName === '') {
+                alert('Por favor, escribe tu nombre para empezar.');
+                return;
+            }
+            // Ocultar el inicio y mostrar el cuestionario
+            nameContainer.classList.add('hide');
+            quizContainer.classList.remove('hide');
+            
+            welcomeMessage.innerText = `¡Hola, ${userName}! Empecemos...`;
+            currentQuestionIndex = 0;
+            ageScore = 0;
+            setNextQuestion();
+        }
+
+        function setNextQuestion() {
+            resetState();
+            showQuestion(questions[currentQuestionIndex]);
+        }
+
+        function showQuestion(questionData) {
+            questionText.innerText = questionData.question;
+            questionData.answers.forEach(answer => {
+                const button = document.createElement('button');
+                button.innerText = answer.text;
+                button.classList.add('btn');
+                button.addEventListener('click', () => selectAnswer(answer.value));
+                answerButtons.appendChild(button);
+            });
+        }
+
+        function resetState() {
+            while (answerButtons.firstChild) {
+                answerButtons.removeChild(answerButtons.firstChild);
+            }
+        }
+
+        function selectAnswer(value) {
+            ageScore += value; // Sumamos el valor de la respuesta al puntaje
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                setNextQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            quizContainer.classList.add('hide');
+            resultContainer.classList.remove('hide');
+
+            let finalGuess = '';
+            if (ageScore < 50) {
+                finalGuess = 'Estás en tus dulces 16 a 22 años. ¡El futuro es tuyo!';
+            } else if (ageScore < 90) {
+                finalGuess = 'Te calculo entre 23 y 30 años. La etapa de las decisiones importantes.';
+            } else if (ageScore < 130) {
+                finalGuess = 'Debes tener entre 31 y 45 años. Un milenial de corazón.';
+            } else {
+                finalGuess = 'Tienes más de 45 años. Eres una persona con gran experiencia y sabiduría.';
+            }
+            
+            resultText.innerText = `Hmm, ${userName}, según tus respuestas... ${finalGuess} ¿Estuve cerca? 😉`;
+        }
+        
+        function restartGame(){
+            resultContainer.classList.add('hide');
+            nameContainer.classList.remove('hide');
+            nameInput.value = '';
+        }
+
+    </script>
+</body>
+
+</html>
