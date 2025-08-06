@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Crossy Castor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos generales del cuerpo */
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #3d405b;
+            font-family: 'Press Start 2P', cursive;
+            color: #f4f1de;
+            overflow: hidden;
+            touch-action: none; /* Deshabilita el zoom por doble toque en móviles */
+        }
+
+        /* Contenedor principal del juego */
+        .game-container {
+            text-align: center;
+            background-color: #81b29a;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2), 0 6px 6px rgba(0,0,0,0.25);
+            border: 5px solid #f2cc8f;
+            position: relative;
+        }
+
+        h1 {
+            color: #e07a5f;
+            text-shadow: 3px 3px 0 #3d405b;
+        }
+
+        /* Estilo del canvas del juego */
+        canvas {
+            background-color: #a3c1ad;
+            border-radius: 10px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            display: none; /* Oculto por defecto */
+        }
+
+        /* Estilo del menú principal */
+        #main-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        /* Estilo de los botones */
+        .btn {
+            background-color: #e07a5f;
+            color: #f4f1de;
+            border: 3px solid #3d405b;
+            padding: 15px 30px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 4px 4px 0 #3d405b;
+        }
+
+        .btn:hover {
+            background-color: #f28c70;
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 0 #3d405b;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 2px 2px 0 #3d405b;
+        }
+
+        /* Controles para móvil */
+        #mobile-controls {
+            display: none; /* Oculto en escritorio */
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+
+        #joystick-container {
+            width: 150px;
+            height: 150px;
+            background-color: rgba(242, 204, 143, 0.5);
+            border-radius: 50%;
+            position: relative;
+            border: 3px solid #3d405b;
+        }
+
+        #joystick-handle {
+            width: 60px;
+            height: 60px;
+            background-color: #e07a5f;
+            border-radius: 50%;
+            position: absolute;
+            top: 45px;
+            left: 45px;
+            border: 3px solid #3d405b;
+        }
+        
+        #music-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            display: none;
+        }
+        
+        #music-controls button {
+            background: none;
+            border: none;
+            font-size: 30px;
+            cursor: pointer;
+        }
+
+        /* Mostrar controles en pantallas táctiles */
+        @media (pointer: coarse) {
+            #mobile-controls {
+                display: block;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div id="main-menu">
+        <h1>Crossy Castor</h1>
+        <button id="play-btn" class="btn">Jugar</button>
+        <button id="exit-btn" class="btn">Salir</button>
+    </div>
+    <canvas id="gameCanvas" width="560" height="720"></canvas>
+</div>
+
+<div id="mobile-controls">
+    <div id="joystick-container">
+        <div id="joystick-handle"></div>
+    </div>
+</div>
+
+<div id="music-controls">
+    <button id="pause-music-btn">⏸️</button>
+    <button id="restart-music-btn">🔄</button>
+</div>
+
+<audio id="background-music" loop>
+    <source src="https://github.com/JC-004/Juegos-HTML/raw/main/abreme/musica%20de%20fondo/Skrillex%20-%20Cinema%20%20Letra%20(Espa%C3%B1ol).mp3" type="audio/mpeg">
+    Tu navegador no soporta el elemento de audio.
+</audio>
+
+
+<script>
+    // --- CONFIGURACIÓN INICIAL ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const mainMenu = document.getElementById('main-menu');
+    const playBtn = document.getElementById('play-btn');
+    const exitBtn = document.getElementById('exit-btn');
+    const backgroundMusic = document.getElementById('background-music');
+    const musicControls = document.getElementById('music-controls');
+    const pauseMusicBtn = document.getElementById('pause-music-btn');
+    const restartMusicBtn = document.getElementById('restart-music-btn');
+
+    let gameState = 'menu'; // 'menu', 'playing', 'gameOver', 'win'
+    let animationFrameId;
+
+    // --- CONFIGURACIÓN DEL JUEGO ---
+    const TILE_SIZE = 80;
+    const NUM_LANES = 7;
+    const LANES_Y_START = TILE_SIZE;
+    canvas.width = TILE_SIZE * NUM_LANES;
+    canvas.height = TILE_SIZE * (NUM_LANES + 2);
+
+    // --- JUGADOR (CASTOR) ---
+    const player = {
+        width: TILE_SIZE * 0.6,
+        height: TILE_SIZE * 0.6,
+        x: 0,
+        y: 0,
+        emoji: '🦫',
+        fontSize: TILE_SIZE * 0.6,
+        reset() {
+            this.x = canvas.width / 2 - this.width / 2;
+            this.y = (canvas.height - TILE_SIZE) + (TILE_SIZE - this.height) / 2;
+        }
+    };
+
+    // --- OBSTÁCULOS (COCHES) ---
+    let lanes = [];
+
+    function initializeLanes() {
+        lanes = [];
+        const laneColors = ['#6c757d', '#495057'];
+        const carColors = ['#d90429', '#ef233c', '#fca311', '#00b4d8', '#ffc300'];
+        const carWidths = [TILE_SIZE, TILE_SIZE * 1.5, TILE_SIZE * 2];
+
+        for (let i = 0; i < NUM_LANES; i++) {
+            const direction = i % 2 === 0 ? 1 : -1;
+            const speed = (Math.random() * 1.5 + 1) * direction;
+            const y = LANES_Y_START + i * TILE_SIZE;
+            
+            const lane = { y: y, color: laneColors[i % laneColors.length], obstacles: [] };
+
+            let currentX = Math.random() * -200;
+            while(currentX < canvas.width + 200) {
+                const carWidth = carWidths[Math.floor(Math.random() * carWidths.length)];
+                lane.obstacles.push({
+                    x: direction === 1 ? currentX : canvas.width - currentX,
+                    y: y + (TILE_SIZE - TILE_SIZE * 0.7) / 2,
+                    width: carWidth,
+                    height: TILE_SIZE * 0.7,
+                    speed: speed,
+                    color: carColors[Math.floor(Math.random() * carColors.length)]
+                });
+                currentX += carWidth + TILE_SIZE * (Math.random() * 2 + 2);
+            }
+            lanes.push(lane);
+        }
+    }
+
+    // --- FUNCIONES DE DIBUJO ---
+    function drawBackground() {
+        ctx.fillStyle = '#81b29a';
+        ctx.fillRect(0, canvas.height - TILE_SIZE, canvas.width, TILE_SIZE);
+        ctx.fillStyle = '#81b29a';
+        ctx.fillRect(0, 0, canvas.width, TILE_SIZE);
+        ctx.fillStyle = '#58a4b0';
+        ctx.fillRect(0, 0, canvas.width, TILE_SIZE / 2);
+        lanes.forEach(lane => {
+            ctx.fillStyle = lane.color;
+            ctx.fillRect(0, lane.y, canvas.width, TILE_SIZE);
+        });
+    }
+
+    function drawPlayer() {
+        ctx.font = `${player.fontSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(player.emoji, player.x + player.width / 2, player.y + player.height / 2);
+    }
+
+    function drawObstacles() {
+        lanes.forEach(lane => {
+            lane.obstacles.forEach(obs => {
+                ctx.fillStyle = obs.color;
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                ctx.fillStyle = 'yellow';
+                if (obs.speed > 0) {
+                    ctx.fillRect(obs.x + obs.width - 5, obs.y + 5, 5, 5);
+                    ctx.fillRect(obs.x + obs.width - 5, obs.y + obs.height - 10, 5, 5);
+                } else {
+                    ctx.fillRect(obs.x, obs.y + 5, 5, 5);
+                    ctx.fillRect(obs.x, obs.y + obs.height - 10, 5, 5);
+                }
+            });
+        });
+    }
+
+    function drawMessage(text1, text2) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, canvas.height / 2 - 80, canvas.width, 160);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = "32px 'Press Start 2P'";
+        ctx.textAlign = 'center';
+        ctx.fillText(text1, canvas.width / 2, canvas.height / 2 - 20);
+        ctx.font = "16px 'Press Start 2P'";
+        ctx.fillText(text2, canvas.width / 2, canvas.height / 2 + 30);
+    }
+
+    // --- LÓGICA DE ACTUALIZACIÓN ---
+    function updateObstacles() {
+        lanes.forEach(lane => {
+            lane.obstacles.forEach(obs => {
+                obs.x += obs.speed;
+                if (obs.speed > 0 && obs.x > canvas.width) {
+                    obs.x = -obs.width - Math.random() * 100;
+                } else if (obs.speed < 0 && obs.x < -obs.width) {
+                    obs.x = canvas.width + Math.random() * 100;
+                }
+            });
+        });
+    }
+
+    function checkCollisions() {
+        if (player.x < 0) player.x = 0;
+        if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+        if (player.y < 0) player.y = 0;
+        if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+
+        for (const lane of lanes) {
+            for (const obs of lane.obstacles) {
+                if (player.x < obs.x + obs.width && player.x + player.width > obs.x &&
+                    player.y < obs.y + obs.height && player.y + player.height > obs.y) {
+                    gameState = 'gameOver';
+                    backgroundMusic.pause();
+                    return;
+                }
+            }
+        }
+    }
+
+    function checkWin() {
+        if (player.y < TILE_SIZE) {
+            gameState = 'win';
+            backgroundMusic.pause();
+        }
+    }
+
+    // --- CONTROL DEL JUEGO ---
+    function gameLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (gameState === 'playing') {
+            updateObstacles();
+            drawBackground();
+            drawObstacles();
+            drawPlayer();
+            checkCollisions();
+            checkWin();
+        } else if (gameState === 'gameOver') {
+            drawBackground();
+            drawObstacles();
+            drawPlayer();
+            drawMessage('GAME OVER', '💀');
+        } else if (gameState === 'win') {
+            drawBackground();
+            drawObstacles();
+            drawPlayer();
+            drawMessage('¡GANASTE!', '👑');
+        }
+        animationFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    function startGame() {
+        mainMenu.style.display = 'none';
+        canvas.style.display = 'block';
+        musicControls.style.display = 'flex';
+        player.reset();
+        initializeLanes();
+        gameState = 'playing';
+        if (backgroundMusic.paused) {
+           backgroundMusic.play();
+        }
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        gameLoop();
+    }
+
+    // --- MANEJO DE ENTRADAS ---
+    function movePlayer(direction) {
+        if (gameState !== 'playing') return;
+        switch (direction) {
+            case 'up': player.y -= TILE_SIZE; break;
+            case 'down': player.y += TILE_SIZE; break;
+            case 'left': player.x -= TILE_SIZE; break;
+            case 'right': player.x += TILE_SIZE; break;
+        }
+    }
+    
+    window.addEventListener('keydown', e => {
+        if (gameState === 'playing') {
+            switch (e.key) {
+                case 'ArrowUp': case 'w': movePlayer('up'); break;
+                case 'ArrowDown': case 's': movePlayer('down'); break;
+                case 'ArrowLeft': case 'a': movePlayer('left'); break;
+                case 'ArrowRight': case 'd': movePlayer('right'); break;
+            }
+        } else if (gameState === 'gameOver' || gameState === 'win') {
+            if (e.key === 'Enter') startGame();
+        }
+    });
+
+    // --- CONTROLES MÓVILES (JOYSTICK) ---
+    const joystickContainer = document.getElementById('joystick-container');
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    joystickContainer.addEventListener('touchstart', e => {
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+    });
+
+    joystickContainer.addEventListener('touchend', e => {
+        const touch = e.changedTouches[0];
+        const touchEndX = touch.clientX;
+        const touchEndY = touch.clientY;
+        
+        const dx = touchEndX - touchStartX;
+        const dy = touchEndY - touchStartY;
+
+        if (Math.abs(dx) > Math.abs(dy)) { // Movimiento horizontal
+            if (dx > 30) movePlayer('right');
+            else if (dx < -30) movePlayer('left');
+        } else { // Movimiento vertical
+            if (dy > 30) movePlayer('down');
+            else if (dy < -30) movePlayer('up');
+        }
+    });
+    
+    canvas.addEventListener('click', () => {
+        if (gameState === 'gameOver' || gameState === 'win') {
+            startGame();
+        }
+    });
+
+    // --- CONTROLES DE MÚSICA ---
+    pauseMusicBtn.addEventListener('click', () => {
+        if (backgroundMusic.paused) {
+            backgroundMusic.play();
+            pauseMusicBtn.textContent = '⏸️';
+        } else {
+            backgroundMusic.pause();
+            pauseMusicBtn.textContent = '▶️';
+        }
+    });
+    
+    restartMusicBtn.addEventListener('click', () => {
+        backgroundMusic.currentTime = 0;
+        if (backgroundMusic.paused) {
+           backgroundMusic.play();
+           pauseMusicBtn.textContent = '⏸️';
+        }
+    });
+
+    // --- EVENT LISTENERS GENERALES ---
+    playBtn.addEventListener('click', startGame);
+    exitBtn.addEventListener('click', () => {
+        document.querySelector('.game-container').innerHTML = '<h1>¡Gracias por jugar!</h1><p>Puedes cerrar esta pestaña.</p>';
+        musicControls.style.display = 'none';
+        document.getElementById('mobile-controls').style.display = 'none';
+    });
+
+</script>
+</body>
+</html>
