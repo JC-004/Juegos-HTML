@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spinning Cat Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos generales del cuerpo y la fuente */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a2e;
+            font-family: 'Press Start 2P', cursive;
+            color: #e0e1dd;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        /* Contenedor principal para centrar el contenido */
+        .container {
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        /* Estilo de los botones */
+        .btn {
+            background-color: #e94560;
+            color: #ffffff;
+            border: 4px solid #0f3460;
+            padding: 15px 30px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 6px 6px 0 #0f3460;
+            text-shadow: 2px 2px 0 #000;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            background-color: #f06a7f;
+            transform: translateY(-3px);
+            box-shadow: 8px 8px 0 #0f3460;
+        }
+
+        .btn:active {
+            transform: translateY(3px);
+            box-shadow: 2px 2px 0 #0f3460;
+        }
+
+        /* Pantallas del juego (menú, juego, fin) */
+        #main-menu, #game-screen, #end-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Ocultar pantallas por defecto */
+        #game-screen, #end-screen {
+            display: none;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #e94560;
+            text-shadow: 4px 4px 0 #0f3460;
+        }
+
+        /* Estilos de la información en el juego (puntuación, tiempo) */
+        #game-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        /* Contenedor del gato para posicionar efectos */
+        #cat-container {
+            position: relative;
+            margin-bottom: 20px;
+            width: 250px;
+            height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Imagen principal del gato */
+        #cat-image {
+            width: 200px;
+            height: 200px;
+            cursor: pointer;
+            user-select: none; /* Evita que la imagen sea seleccionada al hacer clic rápido */
+            transition: transform 0.1s linear; /* Transición suave para la rotación */
+            border-radius: 50%;
+            border: 5px solid #0f3460;
+            object-fit: cover;
+        }
+        
+        /* Gatos blancos "pop" */
+        .pop-cat {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            animation: pop-animation 0.5s forwards;
+            opacity: 0;
+        }
+
+        /* Animación para los gatos "pop" */
+        @keyframes pop-animation {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Menú Principal -->
+        <div id="main-menu">
+            <h1>Spinning Cat</h1>
+            <button id="play-btn" class="btn">Jugar</button>
+            <button id="exit-btn" class="btn">Salir</button>
+        </div>
+
+        <!-- Pantalla de Juego -->
+        <div id="game-screen">
+            <div id="game-info">
+                <p>Toques: <span id="score">0</span> / <span id="target-score">550</span></p>
+                <p>Tiempo: <span id="timer">02:14</span></p>
+            </div>
+            <div id="cat-container">
+                <img id="cat-image" src="https://raw.githubusercontent.com/JC-004/Juegos-HTML/main/abreme/1.jpg" alt="Gato para girar">
+            </div>
+            <button id="back-to-menu-btn" class="btn">Volver al Menú</button>
+        </div>
+
+        <!-- Pantalla Final -->
+        <div id="end-screen">
+            <h1 id="end-title"></h1>
+            <p id="end-message" style="font-size: 1.2rem;"></p>
+            <p style="font-size: 1.5rem;">Puntuación Final: <span id="final-score">0</span></p>
+            <button id="play-again-btn" class="btn">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <!-- Elemento de Audio -->
+    <audio id="background-music" src="https://github.com/JC-004/Juegos-HTML/raw/main/abreme/musica%20de%20fondo/W%26W%20-%20OIIA%20OIIA%20(Spinning%20Cat).mp3" loop></audio>
+
+    <script>
+        // --- REFERENCIAS A ELEMENTOS DEL DOM ---
+        const mainMenu = document.getElementById('main-menu');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+
+        const playBtn = document.getElementById('play-btn');
+        const exitBtn = document.getElementById('exit-btn');
+        const backToMenuBtn = document.getElementById('back-to-menu-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
+        const catImage = document.getElementById('cat-image');
+        const catContainer = document.getElementById('cat-container');
+        const scoreDisplay = document.getElementById('score');
+        const targetScoreDisplay = document.getElementById('target-score');
+        const timerDisplay = document.getElementById('timer');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const endTitle = document.getElementById('end-title');
+        const endMessage = document.getElementById('end-message');
+        const backgroundMusic = document.getElementById('background-music');
+
+        // --- VARIABLES DEL JUEGO ---
+        let score = 0;
+        let timeLeft = 134; // 2 minutos y 14 segundos
+        const targetScore = 550;
+        let rotation = 0;
+        let rotationSpeed = 0;
+        let gameInterval;
+        let timerInterval;
+        let lastClickTime = 0;
+        let isGameActive = false;
+
+        // URLs de las imágenes
+        const normalCatImg = "https://raw.githubusercontent.com/JC-004/Juegos-HTML/main/abreme/1.jpg";
+        const spinningCatImg = "https://raw.githubusercontent.com/JC-004/Juegos-HTML/main/abreme/2.png";
+        const popCat1Img = "https://raw.githubusercontent.com/JC-004/Juegos-HTML/main/abreme/3.png";
+        const popCat2Img = "https://raw.githubusercontent.com/JC-004/Juegos-HTML/main/abreme/4.png";
+
+        // --- FUNCIONES DEL JUEGO ---
+
+        /**
+         * Formatea el tiempo restante en formato MM:SS.
+         */
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        /**
+         * Inicia el juego, resetea las variables y muestra la pantalla de juego.
+         */
+        function startGame() {
+            // Resetear variables
+            isGameActive = true;
+            score = 0;
+            timeLeft = 134;
+            rotation = 0;
+            rotationSpeed = 0;
+            lastClickTime = Date.now();
+
+            // Actualizar la UI
+            scoreDisplay.textContent = score;
+            targetScoreDisplay.textContent = targetScore;
+            timerDisplay.textContent = formatTime(timeLeft);
+            catImage.style.transform = `rotate(0deg)`;
+            catImage.src = normalCatImg;
+
+            // Cambiar de pantalla
+            mainMenu.style.display = 'none';
+            endScreen.style.display = 'none';
+            gameScreen.style.display = 'flex';
+
+            // Iniciar los bucles del juego
+            gameInterval = setInterval(updateAnimation, 1000 / 60); // Bucle de animación
+            timerInterval = setInterval(updateTimer, 1000); // Bucle del temporizador
+
+            // Reproducir música
+            backgroundMusic.currentTime = 0;
+            backgroundMusic.play().catch(e => console.log("La reproducción automática fue bloqueada."));
+        }
+
+        /**
+         * Actualiza el temporizador y comprueba si se acabó el tiempo.
+         */
+        function updateTimer() {
+            if (!isGameActive) return;
+            
+            timeLeft--;
+            timerDisplay.textContent = formatTime(timeLeft);
+            
+            if (timeLeft <= 0) {
+                endGame(false); // El jugador pierde si se acaba el tiempo
+            }
+        }
+        
+        /**
+         * Bucle de animación, se ejecuta 60 veces por segundo.
+         */
+        function updateAnimation() {
+            if (!isGameActive) return;
+            
+            // Aplicar fricción a la velocidad de rotación
+            rotationSpeed *= 0.95; 
+
+            // Si la rotación es muy lenta, detenerla
+            if (Math.abs(rotationSpeed) < 0.1) {
+                rotationSpeed = 0;
+                if (catImage.src !== normalCatImg) {
+                    catImage.src = normalCatImg;
+                }
+            }
+
+            // Actualizar el ángulo de rotación
+            rotation += rotationSpeed;
+            catImage.style.transform = `rotate(${rotation}deg)`;
+        }
+
+        /**
+         * Termina el juego, detiene los bucles y muestra la pantalla final.
+         */
+        function endGame(hasWon) {
+            if (!isGameActive) return; // Evitar que se llame varias veces
+            isGameActive = false;
+            
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            
+            gameScreen.style.display = 'none';
+            finalScoreDisplay.textContent = score;
+            
+            if (hasWon) {
+                endTitle.textContent = "¡Felicidades!";
+                endMessage.textContent = "¡Alcanzaste el objetivo!";
+            } else {
+                endTitle.textContent = "¡Se acabó el tiempo!";
+                endMessage.textContent = "¡Sigue intentándolo!";
+            }
+            
+            endScreen.style.display = 'flex';
+            backgroundMusic.pause();
+        }
+        
+        /**
+         * Crea un gato blanco "pop" que aparece y desaparece.
+         */
+        function createPopCat() {
+            const popCat = document.createElement('img');
+            popCat.src = Math.random() > 0.5 ? popCat1Img : popCat2Img;
+            popCat.className = 'pop-cat';
+
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 120 + Math.random() * 30;
+            popCat.style.left = `calc(50% + ${Math.cos(angle) * radius}px - 30px)`;
+            popCat.style.top = `calc(50% + ${Math.sin(angle) * radius}px - 30px)`;
+            
+            catContainer.appendChild(popCat);
+
+            setTimeout(() => popCat.remove(), 500);
+        }
+
+        /**
+         * Maneja el evento de clic en el gato principal.
+         */
+        function handleCatClick() {
+            if (!isGameActive) return;
+
+            const currentTime = Date.now();
+            const timeDiff = currentTime - lastClickTime;
+
+            score++;
+            scoreDisplay.textContent = score;
+            rotationSpeed += 5;
+
+            if (timeDiff < 150) {
+                if (catImage.src !== spinningCatImg) catImage.src = spinningCatImg;
+            } else {
+                 if (catImage.src !== normalCatImg) catImage.src = normalCatImg;
+                if (rotationSpeed < 50) createPopCat();
+            }
+            
+            lastClickTime = currentTime;
+            
+            // Comprobar si se alcanzó el objetivo
+            if (score >= targetScore) {
+                endGame(true); // El jugador gana
+            }
+        }
+
+        /**
+         * Muestra un mensaje de despedida.
+         */
+        function exitGame() {
+            document.body.innerHTML = `<h1>¡Gracias por jugar!</h1>`;
+        }
+
+        /**
+         * Vuelve al menú principal desde el juego.
+         */
+        function returnToMenu() {
+            isGameActive = false;
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            gameScreen.style.display = 'none';
+            mainMenu.style.display = 'flex';
+            backgroundMusic.pause();
+        }
+
+        // --- EVENT LISTENERS ---
+        playBtn.addEventListener('click', startGame);
+        exitBtn.addEventListener('click', exitGame);
+        playAgainBtn.addEventListener('click', startGame);
+        backToMenuBtn.addEventListener('click', returnToMenu);
+        catImage.addEventListener('mousedown', handleCatClick);
+
+    </script>
+</body>
+</html>
